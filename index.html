@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Modern QR-Code Generator</title>
+  <title>Responsiver QR-Code Generator</title>
   <!-- Bootstrap 5 CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
   <!-- qrcodejs Bibliothek -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    /* Farbpalette & Grundlayout */
+    /* Grundlayout & Farbpalette */
     body {
       background-color: #F2EFE7;
     }
@@ -22,62 +22,107 @@
     .dropdown-menu {
       background-color: #48A6A7;
     }
+    /* Card für den QR-Code Generator */
     .qr-card {
-      max-width: 600px;
-      margin: 3rem auto;
       padding: 2rem;
       border-radius: 15px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       background-color: #ffffff;
+      margin-bottom: 1rem;
     }
-    /* Dropdown als Hover-Menü */
-    .dropdown:hover .dropdown-menu {
-      display: block;
-    }
-    /* DIN A4 Canvas (wird als temporäres Element genutzt) */
+    /* DIN A4 Canvas (wird nur für den PNG-Export genutzt) */
     #a4Canvas {
       display: none;
+    }
+    /* Sidebar für den Verlauf (auf Tablet & Desktop sichtbar) */
+    #historySidebar {
+      background-color: #ffffff;
+      border-radius: 15px;
+      padding: 1rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    /* Modal: Verlauf – wird nur auf mobilen Geräten angezeigt */
+    .modal.d-md-none .modal-content {
+      border-radius: 15px;
+    }
+    
+    /* Responsives Design */
+    @media screen and (max-width: 767px) {
+      .qr-card {
+        margin: 1.5rem 1rem;
+        padding: 1.5rem;
+      }
+      .navbar-brand {
+        font-size: 1.2rem;
+      }
+    }
+    @media screen and (min-width: 768px) and (max-width: 1023px) {
+      .qr-card {
+        margin: 2rem auto;
+        padding: 1.75rem;
+      }
+      .navbar-brand {
+        font-size: 1.5rem;
+      }
+    }
+    @media screen and (min-width: 1024px) {
+      .qr-card {
+        margin: 3rem auto;
+        padding: 2rem;
+      }
+      .navbar-brand {
+        font-size: 1.8rem;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Navbar mit Hamburger Menü -->
+  <!-- Navbar: Auf mobilen Geräten erscheint ein Hamburger-Button, der das Modal öffnet -->
   <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="#">QR-Code Generator</a>
-      <div class="dropdown">
-        <button class="navbar-toggler" type="button">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <ul class="dropdown-menu">
-          <li>
-            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#historyModal">
-              Verlauf
-            </a>
-          </li>
-        </ul>
-      </div>
+      <!-- Hamburger-Button nur in mobiler Ansicht (d-md-none) -->
+      <button class="navbar-toggler d-md-none" type="button" data-bs-toggle="modal" data-bs-target="#historyModal">
+        <span class="navbar-toggler-icon"></span>
+      </button>
     </div>
   </nav>
   
-  <!-- Hauptbereich mit Eingabefeldern und QR-Vorschau -->
+  <!-- Hauptcontainer mit QR-Code Generator und Sidebar (für Tablet & Desktop) -->
   <div class="container">
-    <div class="qr-card mt-4">
-      <div class="mb-3">
-        <label for="qrName" class="form-label">QR-Code Name</label>
-        <input type="text" id="qrName" class="form-control" placeholder="Name des QR Codes">
+    <div class="row">
+      <!-- Spalte für den QR-Code Generator -->
+      <div class="col-12 col-md-8">
+        <div class="qr-card mt-4">
+          <div class="mb-3">
+            <label for="qrName" class="form-label">QR-Code Name</label>
+            <input type="text" id="qrName" class="form-control" placeholder="Name des QR Codes">
+          </div>
+          <div class="mb-3">
+            <label for="urlInput" class="form-label">URL</label>
+            <input type="text" id="urlInput" class="form-control" placeholder="https://example.com">
+          </div>
+          <button class="btn btn-primary mb-3" onclick="generateQRCode()">QR-Code generieren</button>
+          <div id="qrPreview" class="text-center"></div>
+        </div>
       </div>
-      <div class="mb-3">
-        <label for="urlInput" class="form-label">URL</label>
-        <input type="text" id="urlInput" class="form-control" placeholder="https://example.com">
+      
+      <!-- Sidebar: Verlauf, nur sichtbar ab md (Tablet & Desktop) -->
+      <div class="col-md-4 d-none d-md-block">
+        <div id="historySidebar" class="mt-4">
+          <h4>Verlauf</h4>
+          <div id="historyListSidebar" class="list-group">
+            <!-- Dynamisch erzeugte Einträge -->
+          </div>
+        </div>
       </div>
-      <button class="btn btn-primary mb-3" onclick="generateQRCode()">QR-Code generieren</button>
-      <div id="qrPreview" class="text-center"></div>
     </div>
   </div>
-
-  <!-- Modal: Verlauf der generierten QR Codes -->
-  <div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+  
+  <!-- Modal: Verlauf (nur in mobiler Ansicht sichtbar, d-md-none) -->
+  <div class="modal fade d-md-none" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header" style="background-color: #2973B2; color: white;">
@@ -85,8 +130,8 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
         </div>
         <div class="modal-body">
-          <div id="historyList" class="list-group">
-            <!-- Dynamische Liste der Einträge -->
+          <div id="historyListModal" class="list-group">
+            <!-- Dynamisch erzeugte Einträge -->
           </div>
         </div>
         <div class="modal-footer">
@@ -95,13 +140,13 @@
       </div>
     </div>
   </div>
-
-  <!-- Temporäres DIN A4 Canvas (wird für den PNG-Export genutzt) -->
+  
+  <!-- Temporäres DIN-A4 Canvas für den PNG-Export -->
   <canvas id="a4Canvas" width="792" height="1123"></canvas>
-
+  
   <!-- JavaScript -->
   <script>
-    // Falls noch kein Verlauf in localStorage vorhanden ist, initialisieren
+    // Initialisierung des localStorage, falls noch nicht vorhanden
     if (!localStorage.getItem('qrHistory')) {
       localStorage.setItem('qrHistory', JSON.stringify([]));
     }
@@ -122,11 +167,11 @@
         return;
       }
       
-      // Vorschau-Container leeren
+      // Vorschau leeren
       var preview = document.getElementById("qrPreview");
       preview.innerHTML = "";
       
-      // QR-Code in der Vorschau generieren (Größe 200x200)
+      // QR-Code in der Vorschau generieren (200×200)
       new QRCode(preview, {
         text: url,
         width: 200,
@@ -136,58 +181,67 @@
         correctLevel: QRCode.CorrectLevel.H
       });
       
-      // In den Verlauf speichern
+      // Im Verlauf (localStorage) speichern
       var history = JSON.parse(localStorage.getItem('qrHistory'));
       history.push({ name: name, url: url, date: new Date().toISOString() });
       localStorage.setItem('qrHistory', JSON.stringify(history));
       
-      // Aktualisiere die Liste im Modal (falls geöffnet)
+      // Aktualisiere beide Verlaufslister (Modal & Sidebar)
       updateHistoryList();
     }
     
     /**
-     * Aktualisiert die Liste im "Verlauf"-Modal anhand der in localStorage gespeicherten Einträge.
+     * Aktualisiert den Verlauf in Modal und Sidebar anhand der gespeicherten Einträge.
      */
     function updateHistoryList() {
       var history = JSON.parse(localStorage.getItem('qrHistory'));
-      var historyList = document.getElementById("historyList");
-      historyList.innerHTML = "";
+      var listHtml = "";
       
-      if(history.length === 0) {
-        historyList.innerHTML = "<p class='text-center'>Kein Verlauf vorhanden.</p>";
-        return;
+      if (history.length === 0) {
+        listHtml = "<p class='text-center'>Kein Verlauf vorhanden.</p>";
+      } else {
+        var reversedHistory = history.slice().reverse();
+        reversedHistory.forEach(function(item) {
+          // Einfache Escapierung von Anführungszeichen
+          var safeName = item.name.replace(/"/g, '&quot;');
+          var safeUrl  = item.url.replace(/"/g, '&quot;');
+          listHtml += "<div class='list-group-item d-flex justify-content-between align-items-center'>";
+          listHtml += "<div><strong>" + safeName + "</strong><br><small>" + safeUrl + "</small></div>";
+          listHtml += "<button class='btn btn-sm btn-outline-primary' onclick='downloadPNG(\"" + safeName + "\", \"" + safeUrl + "\")'>Download PNG</button>";
+          listHtml += "</div>";
+        });
       }
       
-      // Neueste Einträge zuerst – hier über eine Kopie des Arrays
-      var reversedHistory = history.slice().reverse();
-      reversedHistory.forEach(function(item) {
-        // Einfaches Escapen von Anführungszeichen für den Inline-Handler
-        var safeName = item.name.replace(/"/g, '&quot;');
-        var safeUrl  = item.url.replace(/"/g, '&quot;');
-        var listItem = document.createElement("div");
-        listItem.className = "list-group-item d-flex justify-content-between align-items-center";
-        listItem.innerHTML = "<div><strong>" + safeName + "</strong><br><small>" + safeUrl + "</small></div>" +
-                             "<button class='btn btn-sm btn-outline-primary' onclick='downloadPNG(\"" + safeName + "\", \"" + safeUrl + "\")'>Download PNG</button>";
-        historyList.appendChild(listItem);
-      });
+      // Update Modal (mobile)
+      var modalList = document.getElementById("historyListModal");
+      if (modalList) {
+        modalList.innerHTML = listHtml;
+      }
+      // Update Sidebar (Tablet & Desktop)
+      var sidebarList = document.getElementById("historyListSidebar");
+      if (sidebarList) {
+        sidebarList.innerHTML = listHtml;
+      }
     }
     
-    // Aktualisiere die Liste, wenn das Modal geöffnet wird
+    // Aktualisierung des Modal-Verlaufs, wenn es geöffnet wird (mobile)
     var historyModal = document.getElementById('historyModal');
-    historyModal.addEventListener('show.bs.modal', updateHistoryList);
+    if (historyModal) {
+      historyModal.addEventListener('show.bs.modal', updateHistoryList);
+    }
     
     /**
-     * Generiert ein DIN-A4 großes PNG (792×1123px) mit Titel und QR-Code und löst den Download aus.
-     * Es wird ein temporärer Container genutzt, um den QR-Code in hoher Auflösung (hier 400×400px) zu erzeugen.
+     * Generiert ein DIN-A4 großes PNG (ca. 792×1123px) mit Titel und QR-Code und löst den Download aus.
+     * Es wird ein temporärer Container genutzt, um den QR-Code in hoher Auflösung (400×400px) zu erzeugen.
      */
     function downloadPNG(name, url) {
-      // Temporären Container anlegen (unsichtbar im DOM)
+      // Temporären Container für den hochauflösenden QR-Code erstellen
       var tempDiv = document.createElement("div");
       tempDiv.style.position = "absolute";
       tempDiv.style.left = "-9999px";
       document.body.appendChild(tempDiv);
       
-      // QR-Code im temporären Container generieren (Größe 400×400)
+      // QR-Code im temporären Container generieren (400×400)
       var qrSize = 400;
       new QRCode(tempDiv, {
         text: url,
@@ -198,7 +252,7 @@
         correctLevel: QRCode.CorrectLevel.H
       });
       
-      // Leicht verzögern, damit der QR-Code erzeugt wird
+      // Kurze Verzögerung, damit der QR-Code erstellt wird
       setTimeout(function() {
         var qrCanvas = tempDiv.querySelector("canvas");
         if (!qrCanvas) {
@@ -207,7 +261,7 @@
           return;
         }
         
-        // DIN-A4 Canvas (hier ca. 792×1123 Pixel bei 96 DPI)
+        // DIN-A4 Canvas (792×1123px bei ca. 96 DPI)
         var a4Canvas = document.getElementById("a4Canvas");
         var ctx = a4Canvas.getContext("2d");
         ctx.clearRect(0, 0, a4Canvas.width, a4Canvas.height);
@@ -216,13 +270,13 @@
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, a4Canvas.width, a4Canvas.height);
         
-        // Titel (QR-Code Name) oben zentriert
+        // Titel oben zentriert
         ctx.fillStyle = "#000000";
         ctx.font = "30px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(name, a4Canvas.width / 2, 50);
         
-        // QR-Code zentriert unterhalb des Titels
+        // QR-Code zentriert unterhalb des Titels zeichnen
         var xPos = (a4Canvas.width - qrSize) / 2;
         var yPos = 100;
         ctx.drawImage(qrCanvas, 0, 0, qrCanvas.width, qrCanvas.height, xPos, yPos, qrSize, qrSize);
@@ -233,7 +287,6 @@
         // Download auslösen
         var link = document.createElement("a");
         link.href = dataURL;
-        // Dateiname bereinigen (z. B. Sonderzeichen entfernen)
         var filename = name.replace(/[^a-z0-9]/gi, '_').toLowerCase() || 'qr_code';
         link.download = filename + ".png";
         document.body.appendChild(link);
@@ -244,9 +297,12 @@
         document.body.removeChild(tempDiv);
       }, 100);
     }
+    
+    // Initialer Aufruf zum Befüllen der Verlaufsliste
+    updateHistoryList();
   </script>
   
-  <!-- Bootstrap 5 JS Bundle (enthält Popper u.a.) -->
+  <!-- Bootstrap 5 JS Bundle (enthält Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
